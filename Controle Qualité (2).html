@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Contrôle qualité</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#14171A;
+    --surface:#1E2226;
+    --surface-2:#262B30;
+    --surface-3:#2E343A;
+    --border:#363C42;
+    --ink:#E8EAED;
+    --muted:#8B9299;
+    --faint:#5B6167;
+    --ok:#2FB673;
+    --ok-dim:#1E3A2E;
+    --nc:#E3573D;
+    --nc-dim:#3A241E;
+    --amber:#F2A93B;
+    --amber-dim:#3A2E19;
+    --cyan:#4FB8C4;
+    --cyan-dim:#1A3236;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg-deep);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.disp{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  button{font-family:inherit;}
+  #app{max-width:1100px;margin:0 auto;min-height:100vh;}
+
+  /* ---------- shared ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;border-bottom:1px solid var(--border);
+    position:sticky;top:0;background:var(--bg-deep);z-index:20;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none;}
+  .brand span{font-weight:600;font-size:15px;letter-spacing:.2px;}
+  .nav-link{
+    background:none;border:1px solid var(--border);color:var(--muted);
+    padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;
+    display:flex;align-items:center;gap:6px;
+  }
+  .nav-link:active{transform:scale(.97);}
+  .hidden{display:none !important;}
+
+  /* ---------- operator screen ---------- */
+  .op-wrap{padding:20px 18px 40px;}
+  .progress-track{height:4px;border-radius:2px;background:var(--surface-3);margin-bottom:26px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--cyan);border-radius:2px;transition:width .25s ease;}
+  .step-label{color:var(--muted);font-size:13px;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;}
+  .step-title{font-size:22px;font-weight:600;margin:0 0 22px;}
+  .btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .op-btn{
+    background:var(--surface);border:1px solid var(--border);color:var(--ink);
+    border-radius:var(--radius);padding:22px 14px;font-size:16px;font-weight:600;
+    cursor:pointer;min-height:88px;display:flex;align-items:center;justify-content:center;
+    text-align:center;line-height:1.3;
+  }
+  .op-btn:active{transform:scale(.97);background:var(--surface-2);}
+  .op-btn.ok-btn{background:var(--ok-dim);border-color:var(--ok);color:var(--ok);grid-column:1/-1;font-size:19px;padding:24px;}
+  .op-btn.nc-btn{background:var(--nc-dim);border-color:var(--nc);color:var(--nc);}
+  .op-btn.nc-btn.active{background:var(--nc);color:#fff;border-color:var(--nc);}
+  .op-btn.article-active{background:var(--cyan);border-color:var(--cyan);color:#0B1F22;}
+  .validate-btn{background:var(--cyan-dim) !important;border-color:var(--cyan) !important;color:var(--cyan) !important;}
+  .hint{color:var(--muted);font-size:12.5px;margin:-14px 0 18px;}
+  .back-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .back-btn{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:8px 0;}
+  .chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;}
+  .chip{background:var(--surface-2);border:1px solid var(--border);border-radius:16px;padding:6px 12px;font-size:12px;color:var(--muted);}
+  .chip.chip-ok{border-color:var(--ok);color:var(--ok);background:var(--ok-dim);}
+  .chip.chip-nc{border-color:var(--nc);color:var(--nc);background:var(--nc-dim);}
+  .counter{color:var(--muted);font-size:13px;margin-top:26px;text-align:center;}
+  .empty-cta{
+    background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);
+    padding:28px 20px;text-align:center;color:var(--muted);
+  }
+  .empty-cta button{margin-top:14px;}
+  .confirm-flash{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:10px;z-index:100;
+  }
+  .confirm-flash.ok{background:rgba(47,182,115,.14);}
+  .confirm-flash.nc{background:rgba(227,87,61,.14);}
+  .confirm-flash .icon{font-size:52px;}
+  .confirm-flash .txt{font-size:18px;font-weight:600;}
+  .footer-link{text-align:center;margin-top:36px;}
+  .footer-link a{color:var(--faint);font-size:12px;text-decoration:none;border-bottom:1px dotted var(--faint);}
+
+  /* ---------- stats screen ---------- */
+  .stats-wrap{padding:20px 18px 60px;}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;}
+  .filters select{
+    background:var(--surface);color:var(--ink);border:1px solid var(--border);
+    border-radius:10px;padding:9px 12px;font-size:13px;
+  }
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:28px;}
+  .kpi{background:var(--surface);border-radius:var(--radius);padding:16px 18px;}
+  .kpi .lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+  .kpi .val{font-size:28px;font-weight:700;}
+  .kpi .val.ok{color:var(--ok);}
+  .kpi .val.nc{color:var(--nc);}
+
+  .section{margin-bottom:32px;}
+  .section h2{font-size:16px;font-weight:600;margin:0 0 4px;}
+  .section .sub{color:var(--muted);font-size:12.5px;margin:0 0 16px;}
+
+  .andon{display:flex;flex-direction:column;gap:8px;}
+  .andon-row{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:10px;padding:10px 14px;}
+  .andon-row .name{width:120px;font-size:13px;font-weight:600;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .andon-row .bar-track{flex:1;height:22px;background:var(--surface-3);border-radius:6px;overflow:hidden;position:relative;}
+  .andon-row .bar-fill{height:100%;border-radius:6px;}
+  .andon-row .pct{width:52px;text-align:right;font-size:13px;flex:none;}
+  .andon-row .n{width:64px;text-align:right;color:var(--muted);font-size:12px;flex:none;}
+
+  .barlist{display:flex;flex-direction:column;gap:10px;}
+  .barlist .row{display:flex;align-items:center;gap:10px;}
+  .barlist .name{width:150px;font-size:13px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .barlist .track{flex:1;height:16px;background:var(--surface-3);border-radius:5px;overflow:hidden;}
+  .barlist .fill{height:100%;background:var(--nc);border-radius:5px;}
+  .barlist .fill.op{background:var(--cyan);}
+  .barlist .val{width:36px;text-align:right;font-size:12px;color:var(--muted);flex:none;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;border-bottom:1px solid var(--border);}
+  td{padding:9px 10px;border-bottom:1px solid var(--border);}
+  tr:last-child td{border-bottom:none;}
+  .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11.5px;}
+  .tag.ok{background:var(--ok-dim);color:var(--ok);}
+  .tag.nc{background:var(--nc-dim);color:var(--nc);}
+  .table-wrap{overflow-x:auto;background:var(--surface);border-radius:var(--radius);padding:6px 14px;}
+  .row-delete{background:none;border:1px solid var(--border);color:var(--faint);border-radius:6px;width:26px;height:26px;font-size:15px;line-height:1;cursor:pointer;}
+  .row-delete:hover{border-color:var(--nc);color:var(--nc);}
+
+  .empty-state{color:var(--faint);font-size:13px;padding:20px;text-align:center;background:var(--surface);border-radius:var(--radius);}
+
+  /* ---------- config screen ---------- */
+  .cfg-wrap{padding:20px 18px 60px;}
+  .cfg-block{background:var(--surface);border-radius:var(--radius);padding:16px 18px;margin-bottom:18px;}
+  .cfg-block h3{margin:0 0 4px;font-size:14px;}
+  .cfg-block .sub{color:var(--muted);font-size:12px;margin:0 0 14px;}
+  .cfg-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .cfg-item{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:16px;padding:6px 8px 6px 14px;font-size:13px;}
+  .cfg-item button{background:none;border:none;color:var(--faint);cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;}
+  .cfg-add{display:flex;gap:8px;}
+  .cfg-add input{
+    flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--ink);
+    border-radius:8px;padding:9px 12px;font-size:13px;
+  }
+  .cfg-add button{
+    background:var(--cyan-dim);color:var(--cyan);border:1px solid var(--cyan);
+    border-radius:8px;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600;
+  }
+  .article-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;}
+  .article-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .article-name{font-weight:600;font-size:14.5px;}
+  .cfg-item-del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;}
+  .cfg-item-del:hover{color:var(--nc);}
+  .subparts{display:flex;flex-direction:column;gap:10px;margin-bottom:10px;}
+  .subpart-row{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+  .subpart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .subpart-name{font-size:13px;font-weight:600;color:var(--cyan);}
+  .cfg-list.small{gap:6px;margin-bottom:8px;}
+  .cfg-item.small{padding:4px 6px 4px 10px;font-size:11.5px;}
+  .cfg-add.small input{padding:7px 10px;font-size:12px;}
+  .cfg-add.small button{padding:7px 12px;font-size:12px;}
+  .danger-zone{border:1px solid var(--nc);border-radius:var(--radius);padding:16px 18px;margin-top:30px;}
+  .danger-zone h3{color:var(--nc);font-size:13px;margin:0 0 6px;}
+  .danger-zone p{color:var(--muted);font-size:12px;margin:0 0 12px;}
+  .danger-btn{background:none;border:1px solid var(--nc);color:var(--nc);border-radius:8px;padding:8px 14px;font-size:12.5px;cursor:pointer;}
+  .export-btn{background:none;border:1px solid var(--border);color:var(--ink);border-radius:8px;padding:8px 14px;font-size:12.5px;cursor:pointer;}
+
+  .loading-msg{color:var(--muted);font-size:13px;text-align:center;padding:40px 0;}
+  ::selection{background:var(--cyan-dim);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="loading-msg" id="global-loading">Chargement...</div>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxzFO-xfiqYSUrUES9uOuQB44RQHXfeiX9g6sCfGabKosAbsaj8X5vnSrBrgJBBcC6C/exec';
+
+const state = {
+  config: null,
+  entries: null,
+  view: 'operator',
+  op: { articleName: null, subpartIndex: 0, subResults: [], operatorName: null, selectedDefects: [] }
+};
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+async function storageGet(key){
+  const res = await fetch(GAS_URL + '?key=' + encodeURIComponent(key));
+  const text = await res.text();
+  if(!text || text === 'null') return null;
+  return JSON.parse(text);
+}
+async function storageSet(key, valueObj){
+  const payload = JSON.stringify({ key, value: JSON.stringify(valueObj) });
+  await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: payload
+  });
+}
+
+function normalizeConfig(raw){
+  const cfg = raw || {};
+  let articles = cfg.articles;
+  if(!Array.isArray(articles) && Array.isArray(cfg.robots)) articles = cfg.robots;
+  if(!Array.isArray(articles)) articles = [];
+  const legacyOperators = Array.isArray(cfg.operators) ? cfg.operators.slice() : [];
+  articles = articles.map(a => {
+    if(typeof a === 'string'){
+      // ancienne structure : article = simple nom, sans sous-ensembles
+      return { name: a, subparts: [{ name: a, operators: legacyOperators.slice() }] };
+    }
+    return {
+      name: a.name || '',
+      subparts: Array.isArray(a.subparts) ? a.subparts.map(sp => ({
+        name: sp.name || '',
+        operators: Array.isArray(sp.operators) ? sp.operators.slice() : []
+      })) : []
+    };
+  });
+  return {
+    articles,
+    defects: Array.isArray(cfg.defects) ? cfg.defects.slice() : []
+  };
+}
+function normalizeEntries(raw){
+  const entries = raw || [];
+  entries.forEach(e => {
+    if(!e.articles && e.robot){ e.articles = [e.robot]; delete e.robot; }
+    if(!e.articles) e.articles = [];
+    if(!Array.isArray(e.subResults)){
+      // migration depuis l'ancien format (1 collaborateur / résultat par entrée)
+      e.subResults = [{
+        name: e.subpart || (e.articles[0] || '—'),
+        operator: e.operator || '—',
+        result: e.result || (Array.isArray(e.defects) && e.defects.length ? 'NC' : 'OK'),
+        defects: Array.isArray(e.defects) ? e.defects : []
+      }];
+      delete e.subpart; delete e.operator; delete e.defects;
+    }
+    if(!e.result){
+      e.result = e.subResults.some(s => s.result==='NC') ? 'NC' : 'OK';
+    }
+  });
+  return entries;
+}
+
+async function loadAll(){
+  let cfg = null, entries = null, failed = false;
+  try{ cfg = await storageGet('qc-config'); }catch(e){ cfg = null; failed = true; }
+  try{ entries = await storageGet('qc-entries'); }catch(e){ entries = []; failed = true; }
+  state.config = normalizeConfig(cfg);
+  state.entries = normalizeEntries(entries);
+  render();
+  if(failed){
+    document.getElementById('app').insertAdjacentHTML('afterbegin',
+      `<div style="background:var(--nc-dim);color:var(--nc);font-size:12.5px;padding:10px 18px;text-align:center;">
+        Connexion à la base de données impossible. Vérifiez votre connexion internet et que l'URL Google Apps Script est correcte.
+      </div>`);
+  }
+}
+
+async function refreshConfig(silent){
+  try{
+    const cfg = await storageGet('qc-config');
+    state.config = normalizeConfig(cfg);
+    if(!silent || state.view==='operator' || state.view==='config') render();
+  }catch(e){ /* hors-ligne : on garde la copie locale */ }
+}
+
+async function refreshEntries(){
+  try{
+    const entries = await storageGet('qc-entries');
+    state.entries = normalizeEntries(entries);
+    if(state.view==='stats') renderStatsBody();
+  }catch(e){ /* hors-ligne : on garde la copie locale */ }
+}
+
+async function manualRefresh(){
+  await Promise.all([refreshConfig(true), refreshEntries()]);
+  if(state.view==='stats') renderStatsBody();
+}
+
+async function saveConfig(){
+  try{ await storageSet('qc-config', state.config); }
+  catch(e){ console.error('save config failed', e); alert("Impossible d'enregistrer : vérifiez votre connexion internet."); }
+}
+async function saveEntries(){
+  try{ await storageSet('qc-entries', state.entries); }
+  catch(e){ console.error('save entries failed', e); alert("Impossible d'enregistrer le contrôle : vérifiez votre connexion internet."); }
+}
+
+function goto(view){
+  state.view = view;
+  state.op = { articleName: null, subpartIndex: 0, subResults: [], operatorName: null, selectedDefects: [] };
+  render();
+  if(view==='operator' || view==='config') refreshConfig(true);
+  if(view==='stats'){ refreshConfig(true); refreshEntries(); }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------------- OPERATOR VIEW ---------------- */
+
+function currentArticle(){
+  return state.config.articles.find(a => a.name === state.op.articleName) || null;
+}
+
+function renderOperator(){
+  const cfg = state.config;
+  if(cfg.articles.length===0){
+    return `
+      <div class="topbar">
+        <div class="brand"><div class="dot"></div><span>Contrôle qualité</span></div>
+        <button class="nav-link" onclick="goto('stats')">Analyse</button>
+      </div>
+      <div class="op-wrap">
+        <div class="empty-cta">
+          <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Configuration requise</div>
+          <div>Ajoutez au moins un article, ses sous-ensembles et leurs collaborateurs avant de démarrer les contrôles.</div>
+          <button class="op-btn" style="margin-top:16px;display:inline-flex;" onclick="goto('config')">Ouvrir la configuration</button>
+        </div>
+      </div>`;
+  }
+
+  const art = currentArticle();
+  const total = state.entries.length;
+  const todayStr = new Date().toDateString();
+  const todayCount = state.entries.filter(e => new Date(e.ts).toDateString()===todayStr).length;
+
+  let body = '';
+  let progressPct = 0;
+
+  if(!art){
+    body = `
+      <div class="step-label">Article</div>
+      <div class="step-title">Quel article contrôler ?</div>
+      <div class="btn-grid">
+        ${cfg.articles.map(a => `<button class="op-btn" onclick="pickArticle('${escapeHtml(a.name).replace(/'/g,"\\'")}')">${escapeHtml(a.name)}</button>`).join('')}
+      </div>`;
+  } else if(art.subparts.length===0){
+    body = `
+      <div class="back-row">
+        <button class="back-btn" onclick="state.op.articleName=null;render()">&larr; Retour</button>
+        <span class="chip">${escapeHtml(art.name)}</span>
+      </div>
+      <div class="empty-cta">
+        <div>Aucun sous-ensemble configuré pour cet article.</div>
+        <button class="op-btn" style="margin-top:16px;display:inline-flex;" onclick="goto('config')">Ouvrir la configuration</button>
+      </div>`;
+  } else {
+    const n = art.subparts.length;
+    const idx = Math.min(state.op.subpartIndex, n-1);
+    const sp = art.subparts[idx];
+    const doneSummary = state.op.subResults.map(s =>
+      `<span class="chip ${s.result==='OK'?'chip-ok':'chip-nc'}">${escapeHtml(s.name)} : ${s.result==='OK'?'OK':'NC'}</span>`
+    ).join('');
+
+    if(sp.operators.length===0){
+      body = `
+        <div class="back-row">
+          <button class="back-btn" onclick="backFromSubpartA()">&larr; Retour</button>
+          <span class="chip">${escapeHtml(art.name)} · ${escapeHtml(sp.name)}</span>
+        </div>
+        <div class="empty-cta">
+          <div>Aucun collaborateur configuré pour ce sous-ensemble.</div>
+          <button class="op-btn" style="margin-top:16px;display:inline-flex;" onclick="goto('config')">Ouvrir la configuration</button>
+        </div>`;
+      progressPct = (idx/n)*100;
+    } else if(!state.op.operatorName){
+      body = `
+        <div class="back-row">
+          <button class="back-btn" onclick="backFromSubpartA()">&larr; Retour</button>
+          <span class="chip">${escapeHtml(art.name)}</span>
+        </div>
+        <div class="step-label">Sous-ensemble ${idx+1} / ${n}</div>
+        <div class="step-title">${escapeHtml(sp.name)} — quel collaborateur ?</div>
+        <div class="btn-grid">
+          ${sp.operators.map(o => `<button class="op-btn" onclick="pickOperatorName('${escapeHtml(o).replace(/'/g,"\\'")}')">${escapeHtml(o)}</button>`).join('')}
+        </div>
+        ${doneSummary ? `<div class="chip-row" style="margin-top:22px;">${doneSummary}</div>` : ''}
+      `;
+      progressPct = (idx/n)*100;
+    } else {
+      const sel = state.op.selectedDefects || [];
+      body = `
+        <div class="back-row">
+          <button class="back-btn" onclick="state.op.operatorName=null;state.op.selectedDefects=[];render()">&larr; Retour</button>
+          <span class="chip">${escapeHtml(art.name)} · ${escapeHtml(sp.name)} · ${escapeHtml(state.op.operatorName)}</span>
+        </div>
+        <div class="step-label">Sous-ensemble ${idx+1} / ${n}</div>
+        <div class="step-title">Résultat pour ${escapeHtml(sp.name)}</div>
+        <p class="hint">Plusieurs problèmes peuvent être sélectionnés.</p>
+        <div class="btn-grid">
+          ${sel.length===0 ? `<button class="op-btn ok-btn" onclick="completeSubpart('OK', [])">Conforme — OK</button>` : ''}
+          ${cfg.defects.map(d => {
+            const active = sel.includes(d);
+            const safe = escapeHtml(d).replace(/'/g,"\\'");
+            return `<button class="op-btn nc-btn ${active?'active':''}" onclick="toggleDefect('${safe}')">${active?'&#10003; ':''}${escapeHtml(d)}</button>`;
+          }).join('')}
+        </div>
+        ${sel.length>0 ? `<button class="op-btn ok-btn validate-btn" style="margin-top:14px;width:100%;" onclick="confirmDefects()">Valider (${sel.length} problème${sel.length>1?'s':''})</button>` : ''}
+        ${doneSummary ? `<div class="chip-row" style="margin-top:22px;">${doneSummary}</div>` : ''}
+      `;
+      progressPct = ((idx+0.5)/n)*100;
+    }
+  }
+
+  return `
+    <div class="topbar">
+      <div class="brand"><div class="dot"></div><span>Contrôle qualité</span></div>
+      <button class="nav-link" onclick="goto('stats')">Analyse</button>
+    </div>
+    <div class="op-wrap">
+      <div class="progress-track"><div class="progress-fill" style="width:${progressPct}%"></div></div>
+      ${body}
+      <div class="counter">${todayCount} contrôle${todayCount>1?'s':''} aujourd'hui · ${total} au total</div>
+      <div class="footer-link"><a href="#" onclick="goto('config');return false;">Configuration</a></div>
+    </div>
+  `;
+}
+
+function pickArticle(name){
+  state.op = { articleName: name, subpartIndex: 0, subResults: [], operatorName: null, selectedDefects: [] };
+  render();
+}
+function pickOperatorName(name){ state.op.operatorName = name; render(); }
+
+function backFromSubpartA(){
+  if(state.op.subpartIndex===0){
+    state.op.articleName = null;
+  } else {
+    state.op.subpartIndex--;
+    state.op.subResults.pop();
+    state.op.operatorName = null;
+    state.op.selectedDefects = [];
+  }
+  render();
+}
+
+function toggleDefect(d){
+  if(!state.op.selectedDefects) state.op.selectedDefects = [];
+  const idx = state.op.selectedDefects.indexOf(d);
+  if(idx>=0) state.op.selectedDefects.splice(idx,1);
+  else state.op.selectedDefects.push(d);
+  render();
+}
+function confirmDefects(){
+  const defects = (state.op.selectedDefects||[]).slice();
+  if(defects.length===0) return;
+  completeSubpart('NC', defects);
+}
+
+function completeSubpart(result, defects){
+  const art = currentArticle();
+  const sp = art.subparts[state.op.subpartIndex];
+  state.op.subResults.push({ name: sp.name, operator: state.op.operatorName, result, defects: defects||[] });
+  state.op.subpartIndex++;
+  state.op.operatorName = null;
+  state.op.selectedDefects = [];
+  if(state.op.subpartIndex >= art.subparts.length){
+    finalizeEntry();
+  } else {
+    render();
+  }
+}
+
+async function finalizeEntry(){
+  const art = currentArticle();
+  const subResults = state.op.subResults.slice();
+  const overallResult = subResults.some(s => s.result==='NC') ? 'NC' : 'OK';
+  const entry = {
+    id: uid(), ts: new Date().toISOString(),
+    articles: [art.name], result: overallResult, subResults
+  };
+  state.entries.push(entry);
+  await saveEntries();
+
+  const flash = document.createElement('div');
+  flash.className = 'confirm-flash ' + (overallResult==='OK' ? 'ok' : 'nc');
+  let label;
+  if(overallResult==='OK'){
+    label = 'Enregistré : ' + escapeHtml(art.name) + ' conforme';
+  } else {
+    const ncNames = subResults.filter(s=>s.result==='NC').map(s=>escapeHtml(s.name)).join(', ');
+    label = 'Enregistré : ' + escapeHtml(art.name) + ' non conforme (' + ncNames + ')';
+  }
+  flash.innerHTML = `<div class="icon">${overallResult==='OK' ? '&#10003;' : '&#9888;'}</div><div class="txt">${label}</div>`;
+  document.body.appendChild(flash);
+  setTimeout(()=>{
+    flash.remove();
+    state.op = { articleName:null, subpartIndex:0, subResults:[], operatorName:null, selectedDefects:[] };
+    render();
+  }, 1500);
+}
+
+/* ---------------- STATS VIEW ---------------- */
+
+function allOperatorNames(cfg){
+  const names = new Set();
+  cfg.articles.forEach(a => a.subparts.forEach(s => s.operators.forEach(o => names.add(o))));
+  return Array.from(names).sort();
+}
+
+function filterEntries(){
+  const range = document.getElementById('f-range') ? document.getElementById('f-range').value : 'all';
+  const articleF = document.getElementById('f-article') ? document.getElementById('f-article').value : 'all';
+  const opF = document.getElementById('f-operator') ? document.getElementById('f-operator').value : 'all';
+  let list = state.entries.slice();
+  const now = Date.now();
+  if(range==='today'){
+    const d = new Date().toDateString();
+    list = list.filter(e => new Date(e.ts).toDateString()===d);
+  } else if(range==='7'){
+    list = list.filter(e => now - new Date(e.ts).getTime() <= 7*86400000);
+  } else if(range==='30'){
+    list = list.filter(e => now - new Date(e.ts).getTime() <= 30*86400000);
+  }
+  if(articleF!=='all') list = list.filter(e => (e.articles||[]).includes(articleF));
+  if(opF!=='all') list = list.filter(e => (e.subResults||[]).some(s => s.operator===opF));
+  return list;
+}
+
+function renderStats(){
+  const cfg = state.config;
+  return `
+    <div class="topbar">
+      <div class="brand"><div class="dot" style="background:var(--cyan)"></div><span>Analyse qualité</span></div>
+      <div style="display:flex;gap:8px;">
+        <button class="nav-link" onclick="goto('config')">Configuration</button>
+        <button class="nav-link" onclick="goto('operator')">Opérateur</button>
+      </div>
+    </div>
+    <div class="stats-wrap" id="stats-body"></div>
+  `;
+}
+
+function renderStatsBody(){
+  const cfg = state.config;
+  const list = filterEntries();
+  const totalN = list.length;
+  const okN = list.filter(e=>e.result==='OK').length;
+  const ncN = totalN - okN;
+  const rate = totalN ? Math.round(okN/totalN*100) : 0;
+
+  // per article
+  const byArticle = {};
+  cfg.articles.forEach(a => byArticle[a.name] = {total:0, ok:0});
+  list.forEach(e => {
+    (e.articles||[]).forEach(a => {
+      if(!byArticle[a]) byArticle[a] = {total:0, ok:0};
+      byArticle[a].total++;
+      if(e.result==='OK') byArticle[a].ok++;
+    });
+  });
+  const articleRows = Object.entries(byArticle);
+
+  // per subpart (article — sous-ensemble), à partir du détail de chaque contrôle
+  const bySubpart = {};
+  list.forEach(e => {
+    const artName = (e.articles && e.articles[0]) || '—';
+    (e.subResults||[]).forEach(s => {
+      const label = artName + ' — ' + s.name;
+      if(!bySubpart[label]) bySubpart[label] = {total:0, ok:0};
+      bySubpart[label].total++;
+      if(s.result==='OK') bySubpart[label].ok++;
+    });
+  });
+  const subpartRows = Object.entries(bySubpart);
+
+  // per defect
+  const byDefect = {};
+  list.forEach(e=>{
+    (e.subResults||[]).forEach(s => {
+      (s.defects||[]).forEach(d => { byDefect[d] = (byDefect[d]||0)+1; });
+    });
+  });
+  const defectRows = Object.entries(byDefect).sort((a,b)=>b[1]-a[1]);
+  const maxDefect = defectRows.length ? defectRows[0][1] : 1;
+
+  // per operator (comptabilisé au niveau du sous-ensemble qu'il a traité)
+  const byOp = {};
+  list.forEach(e=>{
+    (e.subResults||[]).forEach(s => {
+      if(!byOp[s.operator]) byOp[s.operator] = {total:0, ok:0};
+      byOp[s.operator].total++;
+      if(s.result==='OK') byOp[s.operator].ok++;
+    });
+  });
+  const opRows = Object.entries(byOp).sort((a,b)=>b[1].total-a[1].total);
+
+  const recent = list.slice().sort((a,b)=> new Date(b.ts)-new Date(a.ts)).slice(0,25);
+
+  function rateColor(r){
+    if(r>=95) return 'var(--ok)';
+    if(r>=85) return 'var(--amber)';
+    return 'var(--nc)';
+  }
+
+  const articleOptions = ['<option value="all">Tous les articles</option>'].concat(cfg.articles.map(a=>`<option value="${escapeHtml(a.name)}">${escapeHtml(a.name)}</option>`)).join('');
+  const opOptions = ['<option value="all">Tous les opérateurs</option>'].concat(allOperatorNames(cfg).map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`)).join('');
+
+  const html = `
+    <div class="filters">
+      <select id="f-range" onchange="renderStatsBody()">
+        <option value="all">Toute la période</option>
+        <option value="today">Aujourd'hui</option>
+        <option value="7">7 derniers jours</option>
+        <option value="30">30 derniers jours</option>
+      </select>
+      <select id="f-article" onchange="renderStatsBody()">${articleOptions}</select>
+      <select id="f-operator" onchange="renderStatsBody()">${opOptions}</select>
+      <button class="export-btn" onclick="manualRefresh()">&#8635; Actualiser</button>
+      <button class="export-btn" onclick="exportCsv()">Exporter CSV</button>
+      <button class="export-btn" onclick="exportXlsx()">Exporter Excel (.xlsx)</button>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi"><div class="lbl">Contrôles</div><div class="val mono">${totalN}</div></div>
+      <div class="kpi"><div class="lbl">Taux de conformité</div><div class="val mono" style="color:${rateColor(rate)}">${rate}%</div></div>
+      <div class="kpi"><div class="lbl">Conformes</div><div class="val ok mono">${okN}</div></div>
+      <div class="kpi"><div class="lbl">Non-conformités</div><div class="val nc mono">${ncN}</div></div>
+    </div>
+
+    <div class="section">
+      <h2>Tableau de bord par article</h2>
+      <p class="sub">Taux de conformité par article, du plus faible au plus fort.</p>
+      ${articleRows.length ? `<div class="andon">
+        ${articleRows.sort((a,b)=> (a[1].total?a[1].ok/a[1].total:1) - (b[1].total?b[1].ok/b[1].total:1)).map(([name,v])=>{
+          const r = v.total ? Math.round(v.ok/v.total*100) : 0;
+          const col = v.total ? rateColor(r) : 'var(--faint)';
+          return `<div class="andon-row">
+            <div class="name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${v.total?r:0}%;background:${col}"></div></div>
+            <div class="pct mono" style="color:${col}">${v.total? r+'%' : '—'}</div>
+            <div class="n mono">${v.total} contr.</div>
+          </div>`;
+        }).join('')}
+      </div>` : `<div class="empty-state">Aucune donnée sur la période sélectionnée.</div>`}
+    </div>
+
+    <div class="section">
+      <h2>Détail par sous-ensemble</h2>
+      <p class="sub">Taux de conformité par sous-ensemble d'article, pour repérer précisément où agir.</p>
+      ${subpartRows.length ? `<div class="andon">
+        ${subpartRows.sort((a,b)=> (a[1].total?a[1].ok/a[1].total:1) - (b[1].total?b[1].ok/b[1].total:1)).map(([name,v])=>{
+          const r = v.total ? Math.round(v.ok/v.total*100) : 0;
+          const col = rateColor(r);
+          return `<div class="andon-row">
+            <div class="name" title="${escapeHtml(name)}" style="width:200px;">${escapeHtml(name)}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${r}%;background:${col}"></div></div>
+            <div class="pct mono" style="color:${col}">${r}%</div>
+            <div class="n mono">${v.total} contr.</div>
+          </div>`;
+        }).join('')}
+      </div>` : `<div class="empty-state">Aucune donnée sur la période sélectionnée.</div>`}
+    </div>
+
+    <div class="section">
+      <h2>Points d'amélioration</h2>
+      <p class="sub">Types de non-conformités les plus fréquents.</p>
+      ${defectRows.length ? `<div class="barlist">
+        ${defectRows.map(([name,n])=>`
+          <div class="row">
+            <div class="name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+            <div class="track"><div class="fill" style="width:${Math.round(n/maxDefect*100)}%"></div></div>
+            <div class="val mono">${n}</div>
+          </div>`).join('')}
+      </div>` : `<div class="empty-state">Aucune non-conformité enregistrée sur la période.</div>`}
+    </div>
+
+    <div class="section">
+      <h2>Répartition par opérateur</h2>
+      <p class="sub">Volume de contrôles réalisés par opérateur (indicatif, pour orienter la formation).</p>
+      ${opRows.length ? `<div class="barlist">
+        ${opRows.map(([name,v])=>`
+          <div class="row">
+            <div class="name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+            <div class="track"><div class="fill op" style="width:${Math.round(v.total/(opRows[0][1].total||1)*100)}%"></div></div>
+            <div class="val mono">${v.total}</div>
+          </div>`).join('')}
+      </div>` : `<div class="empty-state">Aucune donnée sur la période sélectionnée.</div>`}
+    </div>
+
+    <div class="section">
+      <h2>Derniers contrôles</h2>
+      <p class="sub">25 contrôles les plus récents (un contrôle = un article, tous sous-ensembles confondus).</p>
+      ${recent.length ? `<div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Article</th><th>Résultat</th><th>Détail par sous-ensemble</th><th></th></tr></thead>
+        <tbody>
+          ${recent.map(e=>`<tr>
+            <td class="mono" style="color:var(--muted)">${new Date(e.ts).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+            <td>${(e.articles||[]).map(escapeHtml).join(', ')}</td>
+            <td>${e.result==='OK' ? '<span class="tag ok">OK</span>' : '<span class="tag nc">Non conforme</span>'}</td>
+            <td>${(e.subResults||[]).map(s=>{
+              const tip = escapeHtml(s.operator) + (s.defects && s.defects.length ? ' · ' + s.defects.map(escapeHtml).join(', ') : '');
+              return `<span class="tag ${s.result==='OK'?'ok':'nc'}" style="margin:2px 4px 2px 0;display:inline-block;" title="${tip}">${escapeHtml(s.name)}</span>`;
+            }).join('')}</td>
+            <td style="text-align:right;"><button class="row-delete" onclick="deleteEntry('${e.id}')" aria-label="Supprimer ce contrôle" title="Supprimer ce contrôle">&times;</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      </div>` : `<div class="empty-state">Aucun contrôle enregistré.</div>`}
+    </div>
+  `;
+  document.getElementById('stats-body').innerHTML = html;
+}
+
+async function deleteEntry(id){
+  if(!confirm('Supprimer définitivement ce contrôle ?')) return;
+  state.entries = state.entries.filter(e => e.id !== id);
+  await saveEntries();
+  renderStatsBody();
+}
+
+function exportCsv(){
+  const list = filterEntries();
+  const rows = [['ID Controle','Date','Article','Resultat global','Sous-ensemble','Collaborateur','Resultat sous-ensemble','Defaut(s)']];
+  list.forEach(e => {
+    const artName = (e.articles||[]).join(' + ');
+    const dateStr = new Date(e.ts).toLocaleString('fr-FR');
+    (e.subResults||[]).forEach(s => {
+      rows.push([e.id, dateStr, artName, e.result==='OK'?'OK':'Non conforme', s.name, s.operator, s.result==='OK'?'OK':'Non conforme', (s.defects||[]).join(' + ')]);
+    });
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'controle-qualite-export.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function loadScriptOnce(src){
+  return new Promise((resolve, reject)=>{
+    if(document.querySelector(`script[src="${src}"]`)){ resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Échec du chargement de ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+async function exportXlsx(){
+  const btn = event && event.target;
+  const originalLabel = btn ? btn.textContent : null;
+  if(btn){ btn.textContent = 'Génération...'; btn.disabled = true; }
+  try{
+    if(!window.XLSX){
+      await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    }
+    const list = filterEntries().slice().sort((a,b)=> new Date(a.ts)-new Date(b.ts));
+    const data = [];
+    list.forEach(e => {
+      const artName = (e.articles||[]).join(' + ');
+      const dateStr = new Date(e.ts).toLocaleString('fr-FR');
+      (e.subResults||[]).forEach(s => {
+        data.push({
+          'ID Contrôle': e.id,
+          'Date': dateStr,
+          'Article': artName,
+          'Résultat global': e.result==='OK' ? 'OK' : 'Non conforme',
+          'Sous-ensemble': s.name,
+          'Collaborateur': s.operator,
+          'Résultat sous-ensemble': s.result==='OK' ? 'OK' : 'Non conforme',
+          'Défaut(s)': (s.defects||[]).join(' + ')
+        });
+      });
+    });
+    const ws = window.XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = [{wch:14},{wch:18},{wch:16},{wch:14},{wch:20},{wch:16},{wch:16},{wch:30}];
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, 'Contrôles');
+    window.XLSX.writeFile(wb, 'controle-qualite-export.xlsx');
+  }catch(err){
+    console.error(err);
+    alert("L'export Excel a échoué. Vérifiez votre connexion internet et réessayez, ou utilisez l'export CSV.");
+  }finally{
+    if(btn){ btn.textContent = originalLabel; btn.disabled = false; }
+  }
+}
+
+/* ---------------- CONFIG VIEW ---------------- */
+
+function renderConfig(){
+  const cfg = state.config;
+  return `
+    <div class="topbar">
+      <div class="brand"><div class="dot" style="background:var(--amber)"></div><span>Configuration</span></div>
+      <div style="display:flex;gap:8px;">
+        <button class="nav-link" onclick="goto('stats')">Analyse</button>
+        <button class="nav-link" onclick="goto('operator')">Opérateur</button>
+      </div>
+    </div>
+    <div class="cfg-wrap">
+      <div class="cfg-block">
+        <h3>Articles, sous-ensembles &amp; collaborateurs</h3>
+        <p class="sub">Chaque article se divise en sous-ensembles, et chaque sous-ensemble a ses propres collaborateurs.</p>
+        ${renderArticlesConfig(cfg)}
+        <div class="cfg-add" style="margin-top:4px;">
+          <input type="text" id="add-article" placeholder="Ex: Article F1" onkeydown="if(event.key==='Enter')addArticle()">
+          <button onclick="addArticle()">Ajouter un article</button>
+        </div>
+      </div>
+
+      <div class="cfg-block">
+        <h3>Types de non-conformités</h3>
+        <p class="sub">Liste commune, valable pour tous les articles.</p>
+        <div class="cfg-list">
+          ${cfg.defects.length ? cfg.defects.map((v,i)=>`<div class="cfg-item">${escapeHtml(v)}<button onclick="removeDefect(${i})" aria-label="Supprimer">&times;</button></div>`).join('') : '<span style="color:var(--faint);font-size:12.5px;">Aucun élément.</span>'}
+        </div>
+        <div class="cfg-add">
+          <input type="text" id="add-defect" placeholder="Ex: Soudure défectueuse" onkeydown="if(event.key==='Enter')addDefect()">
+          <button onclick="addDefect()">Ajouter</button>
+        </div>
+      </div>
+
+      <div class="danger-zone">
+        <h3>Zone sensible</h3>
+        <p>Réinitialiser efface définitivement tous les contrôles enregistrés (les listes de configuration sont conservées).</p>
+        <button class="danger-btn" onclick="resetEntries()">Réinitialiser les données de contrôle</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderArticlesConfig(cfg){
+  if(cfg.articles.length===0) return `<div style="color:var(--faint);font-size:12.5px;margin-bottom:14px;">Aucun article configuré.</div>`;
+  return cfg.articles.map((art, ai) => `
+    <div class="article-card">
+      <div class="article-card-head">
+        <span class="article-name">${escapeHtml(art.name)}</span>
+        <button class="cfg-item-del" onclick="removeArticle(${ai})" title="Supprimer l'article">&times;</button>
+      </div>
+      <div class="subparts">
+        ${art.subparts.map((sp, si) => `
+          <div class="subpart-row">
+            <div class="subpart-head">
+              <span class="subpart-name">${escapeHtml(sp.name)}</span>
+              <button class="cfg-item-del" onclick="removeSubpart(${ai},${si})" title="Supprimer le sous-ensemble">&times;</button>
+            </div>
+            <div class="cfg-list small">
+              ${sp.operators.length ? sp.operators.map((o,oi)=>`<div class="cfg-item small">${escapeHtml(o)}<button onclick="removeOperatorFromSubpart(${ai},${si},${oi})" aria-label="Supprimer">&times;</button></div>`).join('') : `<span style="color:var(--faint);font-size:11.5px;">Aucun collaborateur.</span>`}
+            </div>
+            <div class="cfg-add small">
+              <input type="text" id="add-op-${ai}-${si}" placeholder="Ajouter un collaborateur" onkeydown="if(event.key==='Enter')addOperatorToSubpart(${ai},${si})">
+              <button onclick="addOperatorToSubpart(${ai},${si})">+</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="cfg-add small">
+        <input type="text" id="add-subpart-${ai}" placeholder="Ajouter un sous-ensemble" onkeydown="if(event.key==='Enter')addSubpart(${ai})">
+        <button onclick="addSubpart(${ai})">Ajouter</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addArticle(){
+  const input = document.getElementById('add-article');
+  const val = input.value.trim();
+  if(!val) return;
+  if(state.config.articles.some(a=>a.name===val)){ input.value=''; return; }
+  state.config.articles.push({ name: val, subparts: [{ name: val, operators: [] }] });
+  input.value='';
+  await saveConfig();
+  render();
+}
+async function removeArticle(ai){
+  state.config.articles.splice(ai,1);
+  await saveConfig();
+  render();
+}
+async function addSubpart(ai){
+  const input = document.getElementById('add-subpart-'+ai);
+  const val = input.value.trim();
+  if(!val) return;
+  const art = state.config.articles[ai];
+  if(art.subparts.some(s=>s.name===val)){ input.value=''; return; }
+  art.subparts.push({ name: val, operators: [] });
+  input.value='';
+  await saveConfig();
+  render();
+}
+async function removeSubpart(ai, si){
+  state.config.articles[ai].subparts.splice(si,1);
+  await saveConfig();
+  render();
+}
+async function addOperatorToSubpart(ai, si){
+  const input = document.getElementById(`add-op-${ai}-${si}`);
+  const val = input.value.trim();
+  if(!val) return;
+  const sp = state.config.articles[ai].subparts[si];
+  if(sp.operators.includes(val)){ input.value=''; return; }
+  sp.operators.push(val);
+  input.value='';
+  await saveConfig();
+  render();
+}
+async function removeOperatorFromSubpart(ai, si, oi){
+  state.config.articles[ai].subparts[si].operators.splice(oi,1);
+  await saveConfig();
+  render();
+}
+async function addDefect(){
+  const input = document.getElementById('add-defect');
+  const val = input.value.trim();
+  if(!val) return;
+  if(state.config.defects.includes(val)){ input.value=''; return; }
+  state.config.defects.push(val);
+  input.value='';
+  await saveConfig();
+  render();
+}
+async function removeDefect(i){
+  state.config.defects.splice(i,1);
+  await saveConfig();
+  render();
+}
+async function resetEntries(){
+  if(!confirm('Confirmer la suppression définitive de tous les contrôles enregistrés ?')) return;
+  state.entries = [];
+  await saveEntries();
+  render();
+}
+
+/* ---------------- ROUTER ---------------- */
+
+function render(){
+  const app = document.getElementById('app');
+  if(state.view==='operator'){
+    app.innerHTML = renderOperator();
+  } else if(state.view==='stats'){
+    app.innerHTML = renderStats();
+    renderStatsBody();
+  } else if(state.view==='config'){
+    app.innerHTML = renderConfig();
+  }
+}
+
+setInterval(()=>{
+  if(state.view==='stats'){ refreshEntries(); refreshConfig(true); }
+}, 15000);
+
+loadAll();
+</script>
+</body>
+</html>
